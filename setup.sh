@@ -128,7 +128,7 @@ function install_packages() {
 
   if rm -rf /usr/local/go && tar -C /usr/local -xzf go.tgz; then
     log "INFO" "Go installed successfully"
-    echo "export PATH=$PATH:/usr/local/go/bin" >>"/home/$SUDO_USER/.zshrc"
+    echo 'export PATH="$PATH:/usr/local/go/bin"' >>"/home/$SUDO_USER/.zshrc"
   else
     log "ERROR" "Failed to install Go"
     return 1
@@ -181,7 +181,7 @@ function setup_configs() {
     return
   fi
 
-  git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm &>/dev/null
+  git clone https://github.com/tmux-plugins/tpm /home/$SUDO_USER/.tmux/plugins/tpm &>/dev/null
 
   rm -rf /home/$SUDO_USER/.config/nvim
   cp -r /tmp/configs/nvim /home/$SUDO_USER/.config/nvim
