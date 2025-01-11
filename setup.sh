@@ -3,6 +3,7 @@
 PACKAGES=(
   unzip
   git
+  tmux
   curl
   eza
   make
@@ -11,6 +12,8 @@ PACKAGES=(
   gcc
   fzf
   python3-pip
+  xz-utils
+  tar
 )
 CONFIG_REPO="https://github.com/ziggoon/configs"
 
@@ -70,6 +73,14 @@ function install_packages() {
     return 1
   fi
 
+  log "INFO" "Installing ohmyzsh"
+
+  if sudo -u "$SUDO_USER" bash -c 'sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended --keep-zshrc' &>/dev/null; then
+    log "INFO" "successfully installed ohmyzsh"
+  else
+    log "ERROR" "Failed to install ohmyzsh"
+  fi
+
   setup_configs
 
   log "INFO" "Installing homebrew"
@@ -100,6 +111,8 @@ function install_packages() {
   log "INFO" "Installing rust"
 
   if sudo -u "$SUDO_USER" bash -c "curl --proto '=https' --tlsv1.2 -s https://sh.rustup.rs | sh -s -- -y -q" &>/dev/null; then
+    echo 'export PATH="$HOME/.cargo/bin:$PATH"' >>"/home/$SUDO_USER/.zshrc"
+    echo 'source $HOME/.cargo/env' >>"/home/$SUDO_USER/.profile"
     log "INFO" "Rust installed successfully"
   else
     log "ERROR" "Failed to install Rust"
@@ -121,6 +134,21 @@ function install_packages() {
     return 1
   fi
 
+  log "INFO" "Installing zig"
+
+  if curl "https://ziglang.org/builds/zig-linux-x86_64-0.14.0-dev.2628+5b5c60f43.tar.xz" -o /tmp/zig.tar.xz &>/dev/null; then
+    if command -v tar &>/dev/null; then
+      cd /tmp
+      tar xf /tmp/zig.tar.xz
+      cp /tmp/zig-linux-x86_64-0.14.0-dev.2628+5b5c60f43/zig /usr/local/bin/zig
+      log "INFO" "Successfully installed zig"
+    else
+      log "ERROR" "tar not found"
+    fi
+  else
+    log "ERROR" "Failed to install zig"
+  fi
+
   log "INFO" "Installing uv"
 
   if sudo -u "$SUDO_USER" bash -c "curl -LsSf https://astral.sh/uv/install.sh | sh" &>/dev/null; then
@@ -128,14 +156,6 @@ function install_packages() {
   else
     log "ERROR" "Failed to install uv"
     return 1
-  fi
-
-  log "INFO" "Installing ohmyzsh"
-
-  if sudo -u "$SUDO_USER" bash -c "curl -LsSf https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | sh -- --unattended --keep-zshrc" &>/dev/null; then
-    log "INFO" "successfully installed ohmyzsh"
-  else
-    log "ERROR" "Failed to install ohmyzsh"
   fi
 
   log "INFO" "Installing neovim"
@@ -152,7 +172,7 @@ function install_packages() {
 function setup_configs() {
   log "INFO" "Grabbing configs from $CONFIG_REPO"
 
-  if command -v git; then
+  if command -v git &>/dev/null; then
     if git clone $CONFIG_REPO /tmp/configs &>/dev/null; then
       log "INFO" "Configs retrieved successfully"
     fi
@@ -173,7 +193,12 @@ function setup_configs() {
   log "INFO" "Setup configs successfully"
 }
 
+function cleanup() {
+  chown -R $SUDO_USER:$SUDO_USER /home/$SUDO_USER
+}
+
 update_packages
 install_packages "${PACKAGES[@]}"
+cleanup
 
 log "INFO" "Setup complete. Please run 'source ~/.zshrc' to reload your shell."
